@@ -169,6 +169,25 @@ forge script script/DeployRealUSDC_FeeReserve.s.sol:DeployRealUSDC_FeeReserve \
 
 ---
 
+## Design choice: one pool per ACL
+
+For this MVP we intentionally deploy **one `ACLPool` per credit line**.
+
+Why this is the best default for judges and for agent operators:
+- **Risk containment:** a compromised ACL cannot drain unrelated pools.
+- **Clean accounting:** no cross-ACL liquidity coordination questions.
+- **Simple operations:** an agent can deploy a self-contained “pool + staking + reserve + ACL” bundle.
+
+Scaling path (future): a multi-ACL pool can be supported via an allowlist/registry that authorizes multiple credit line contracts. We’re not shipping that complexity in the MVP.
+
+## Owner rotation / ops
+
+Both `ACLPool` and `ProtocolReserve` support owner rotation.
+
+Recommended production pattern:
+- set `owner` to a multisig or an agent-controller contract
+- optional time-delay on sensitive actions (e.g. `sweep`) if you want additional safety
+
 ## What’s next (UI is the last mile)
 
 The protocol and agent workflows are live. Remaining items are product / judge experience:
@@ -179,7 +198,6 @@ The protocol and agent workflows are live. Remaining items are product / judge e
 - Keeper experience:
   - a simple “run updateEpoch for these ACLs” agent script
 - Hardening:
-  - access control on pool `transferTo` (today it’s open; MVP assumes ACL is the only caller, but for production we should restrict)
   - parameter governance / safe defaults
 
 ---
