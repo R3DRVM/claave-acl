@@ -29,13 +29,18 @@ contract ACLPool is ERC20 {
 
     function previewDeposit(uint256 assets) public view returns (uint256 shares) {
         uint256 supply = totalSupply();
-        if (supply == 0) return assets;
-        return (assets * supply) / totalAssets();
+        uint256 assetsInPool = totalAssets();
+        // If the pool was drained (e.g. borrower draws) but shares remain,
+        // allow fresh deposits to re-seed without division-by-zero.
+        if (supply == 0 || assetsInPool == 0) return assets;
+        return (assets * supply) / assetsInPool;
     }
 
     function previewWithdraw(uint256 assets) public view returns (uint256 shares) {
         uint256 supply = totalSupply();
-        return supply == 0 ? 0 : (assets * supply + (totalAssets() - 1)) / totalAssets();
+        uint256 assetsInPool = totalAssets();
+        if (supply == 0 || assetsInPool == 0) return 0;
+        return (assets * supply + (assetsInPool - 1)) / assetsInPool;
     }
 
     function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
