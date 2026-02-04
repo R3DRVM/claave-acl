@@ -345,16 +345,46 @@ export default function App() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
         <section style={{ padding: 16, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
-          <h3>Strategy (Mock)</h3>
+          <h3>Strategy (Real swap path)</h3>
           <div style={{ opacity: 0.75 }}>
-            For MVP we simulate performance on-chain via balance deltas.
+            Trustworthy demo: execute a real swap on Monorail, sending output to the strategy address, then come back and updateEpoch.
           </div>
+
+          <div style={{ marginTop: 10, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+            <div style={{ fontWeight: 700 }}>Monorail (Option A)</div>
+            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+              1) Open Monorail • 2) Swap USDC → any token • 3) Use the strategy address as recipient • 4) Return and click updateEpoch()
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => window.open('https://monorail.xyz/', '_blank')}>Open Monorail</button>
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(ADDRS.mUSDC);
+                  alert('Copied USDC address');
+                }}
+              >
+                Copy USDC address
+              </button>
+              <button
+                onClick={async () => {
+                  const strat = (strategy && strategy !== '—') ? strategy : (account ?? '');
+                  if (!strat) return alert('Connect wallet first');
+                  await navigator.clipboard.writeText(strat);
+                  alert('Copied strategy/recipient address');
+                }}
+              >
+                Copy strategy address
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, opacity: 0.55, fontSize: 12 }}>
+            (Fallback dev tool) Simulated PnL still exists via StrategyMock, but the judge demo should use real swaps.
+          </div>
+
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <input value={pnl} onChange={(e) => setPnl(e.target.value)} style={{ flex: 1 }} />
             <button onClick={strategySimulatePnL}>Simulate PnL</button>
-          </div>
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
-            Note: to simulate positive PnL, the strategy contract must have funds to send out (we can add a helper later).
           </div>
         </section>
 
