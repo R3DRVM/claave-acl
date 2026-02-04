@@ -20,8 +20,10 @@ contract DeployRealUSDC_FeeReserve is Script {
 
         vm.startBroadcast(deployerPk);
 
+        address kclToken = vm.envAddress("KCL");
+
         ACLPool pool = new ACLPool(IERC20(usdc));
-        KCLStaking staking = new KCLStaking();
+        KCLStaking staking = new KCLStaking(IERC20(kclToken));
         ProtocolReserve reserve = new ProtocolReserve(borrower);
 
         AgentCreditLineKCLFee acl = new AgentCreditLineKCLFee(
