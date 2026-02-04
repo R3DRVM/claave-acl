@@ -21,6 +21,15 @@ export const ACLPOOL_ABI = [
   'event Withdraw(address indexed lender, uint256 assets, uint256 shares)'
 ];
 
+export const STAKING_ABI = [
+  'function kcl() view returns (address)',
+  'function staked(address) view returns (uint256)',
+  'function stake(uint256 amount)',
+  'function unstake(uint256 amount)',
+  'event Staked(address indexed user, uint256 amount, uint256 total)',
+  'event Unstaked(address indexed user, uint256 amount, uint256 remaining)'
+];
+
 export const ACL_ABI = [
   'function asset() view returns (address)',
   'function pool() view returns (address)',

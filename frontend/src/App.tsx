@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import './index.css';
 import { ADDRS, CHAIN_ID, EXPLORER } from './claave/constants';
-import { ACL_ABI, ACLPOOL_ABI, ERC20_ABI, STRATEGYMOCK_ABI } from './claave/abi';
+import { ACL_ABI, ACLPOOL_ABI, ERC20_ABI, STAKING_ABI, STRATEGYMOCK_ABI } from './claave/abi';
 import { contractRead, contractWrite, ensureMonadChain, getInjectedProvider, getReadonlyProvider } from './claave/eth';
 import { formatUnits, parseUnits, ZeroAddress } from 'ethers';
 
@@ -46,6 +46,10 @@ export default function App() {
   const [repayAmt, setRepayAmt] = useState('10');
   const [pnl, setPnl] = useState('1');
 
+  const [kclDecimals, setKclDecimals] = useState<number>(18);
+  const [kclStaked, setKclStaked] = useState<string>('—');
+  const [kclStakeAmt, setKclStakeAmt] = useState('100000');
+
   async function connect() {
     const ip = getInjectedProvider();
     if (!ip) {
@@ -76,6 +80,14 @@ export default function App() {
     const acl = contractRead(ADDRS.acl, ACL_ABI, ro);
     const st = await acl.state();
     const [, strat, bondV, debtV, scoreV, failuresV, frozenV] = st;
+
+    // KCL staking state
+    const kcl = contractRead(ADDRS.tokenKCL, ERC20_ABI, ro);
+    const kclDec = await kcl.decimals();
+    setKclDecimals(Number(kclDec));
+    const staking = contractRead(ADDRS.staking, STAKING_ABI, ro);
+    const staked = account ? await staking.staked(account) : 0n;
+    setKclStaked(bnToStr(staked, Number(kclDec)));
 
     setBond(bnToStr(bondV, Number(dec)));
     setDebt(bnToStr(debtV, Number(dec)));
@@ -234,6 +246,27 @@ export default function App() {
     setRefresh((x) => x + 1);
   }
 
+  async function stakeKCL() {
+    if (!account) return;
+    const ip = getInjectedProvider();
+    if (!ip) return;
+    await ensureMonadChain(ip);
+    const signer = await ip.getSigner();
+
+    const kcl = contractWrite(ADDRS.tokenKCL, ERC20_ABI, signer);
+    const staking = contractWrite(ADDRS.staking, STAKING_ABI, signer);
+
+    const amt = parseUnits(kclStakeAmt, kclDecimals);
+    const allowance = await kcl.allowance(account, ADDRS.staking);
+    if (allowance < amt) {
+      const txa = await kcl.approve(ADDRS.staking, amt);
+      await txa.wait();
+    }
+    const tx = await staking.stake(amt);
+    await tx.wait();
+    setRefresh((x) => x + 1);
+  }
+
   return (
     <div style={{ maxWidth: 980, margin: '0 auto', padding: 24 }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -276,6 +309,18 @@ export default function App() {
           <div>Debt: <b>{debt}</b> mUSDC</div>
           <div>Score: <b>{score}</b> | failures: <b>{failures}</b> | frozen: <b>{frozen}</b></div>
           <div>Credit limit: <b>{creditLimit}</b> | available: <b>{available}</b></div>
+
+          <div style={{ marginTop: 12, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+            <div style={{ fontWeight: 700 }}>KCL credit boost (stake)</div>
+            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+              Stake KCL to boost the credit limit multiplier (on-chain, verifiable).
+            </div>
+            <div style={{ marginTop: 8 }}>Your KCL staked: <b>{kclStaked}</b></div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <input value={kclStakeAmt} onChange={(e) => setKclStakeAmt(e.target.value)} style={{ flex: 1 }} />
+              <button onClick={stakeKCL}>Stake KCL</button>
+            </div>
+          </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <button onClick={borrowerLinkStrategy}>Link Strategy</button>
