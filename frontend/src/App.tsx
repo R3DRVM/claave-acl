@@ -367,6 +367,14 @@ export default function App() {
               </button>
               <button
                 onClick={async () => {
+                  await navigator.clipboard.writeText(ADDRS.pool);
+                  alert('Copied Klaave pool address');
+                }}
+              >
+                Copy Klaave pool address
+              </button>
+              <button
+                onClick={async () => {
                   const strat = (strategy && strategy !== '—') ? strategy : (account ?? '');
                   if (!strat) return alert('Connect wallet first');
                   await navigator.clipboard.writeText(strat);

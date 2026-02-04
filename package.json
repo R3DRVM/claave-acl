@@ -3,9 +3,27 @@
   "private": true,
   "type": "commonjs",
   "dependencies": {
-    "ethers": "^6.15.0"
+    "ethers": "^6.16.0"
   },
   "scripts": {
     "nadfun:launch": "node scripts/nadfun_launch.js"
-  }
+  },
+  "version": "1.0.0",
+  "description": "Agent-native revolving credit lines on Monad.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/R3DRVM/claave-acl.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/R3DRVM/claave-acl/issues"
+  },
+  "homepage": "https://github.com/R3DRVM/claave-acl#readme"
 }

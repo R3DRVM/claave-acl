@@ -4,13 +4,13 @@ export const RPC_URL = 'https://rpc.monad.xyz';
 
 // Deployed contracts (Monad mainnet)
 export const ADDRS = {
-  // REAL Monad USDC (Monorail)
-  mUSDC: '0x7547c8b7ca89f85c90c7e0f8269c44d8c7afb603',
+  // REAL Monad USDC (Uniswap v4 pool)
+  mUSDC: '0x754704bc059f8c67012fed69bc8a327a5aafb603',
 
-  // NEW pool + ACL wired to real USDC
-  pool: '0x4A057A5D5E961850516C633eEBdad144CEf3878F',
-  acl: '0x8331f61f97f61480FE6B9fADD5d24B84F6DD3321',
-  staking: '0x4d2BCb2d9eBb1cC748a4D9365011B328AAFc0eE2',
+  // Pool + ACL wired to real USDC
+  pool: '0x7ffd11ae91d0fe1c889bad7939ad12d8fd4a63dc',
+  acl: '0xdb83d43de1131fafc972a24519a6a86b6bd4fdef',
+  staking: '0x6786bc60d21bfa863da4e39fe53d39c952ab3214',
 
   // Legacy mock strategy (used only for simulated PnL path)
   strategyMock: '0x479E93b34340BF3C6D6b45a18944F1cbFe7D7A4e',
