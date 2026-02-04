@@ -56,7 +56,7 @@ contract AgentCreditLineTest is Test {
         assertGt(lim0, 0);
 
         acl.borrow(10_000e6);
-        (, , , uint256 debt,,,,,,) = acl.state();
+        (,,, uint256 debt,,,,,,) = acl.state();
         assertEq(debt, 10_000e6);
 
         // simulate profit by transferring extra funds into strategy
@@ -70,7 +70,7 @@ contract AgentCreditLineTest is Test {
 
         vm.startPrank(borrower);
         acl.repay(10_000e6);
-        (, , , uint256 debt2,,,,,,) = acl.state();
+        (,,, uint256 debt2,,,,,,) = acl.state();
         assertEq(debt2, 0);
         vm.stopPrank();
     }

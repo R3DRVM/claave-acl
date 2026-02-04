@@ -31,14 +31,14 @@ contract DeployRealUSDC is Script {
             pool,
             staking,
             borrower,
-            50,    // epochBlocks
-            1,     // aBond
-            1,     // bPerf
-            2,     // cLoss
-            1000,  // dFailure
+            50, // epochBlocks
+            1, // aBond
+            1, // bPerf
+            2, // cLoss
+            1000, // dFailure
             -1000, // freezeScore
             10_000_000e18, // kclTarget
-            5000          // maxBoostBps (+50%)
+            5000 // maxBoostBps (+50%)
         );
 
         vm.stopBroadcast();

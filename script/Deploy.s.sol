@@ -25,17 +25,7 @@ contract Deploy is Script {
         // cLoss: 2 => losses punish 2x
         // dFailure: 1000 => failures hurt hard
         // freezeScore: -1000 => freeze when too negative
-        AgentCreditLine acl = new AgentCreditLine(
-            usdc,
-            pool,
-            borrower,
-            50,
-            1,
-            1,
-            2,
-            1000,
-            -1000
-        );
+        AgentCreditLine acl = new AgentCreditLine(usdc, pool, borrower, 50, 1, 1, 2, 1000, -1000);
 
         StrategyMock strategy = new StrategyMock(usdc, borrower);
 
