@@ -11,12 +11,45 @@ contract ACLPool is ERC20 {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable asset;
+    address public owner;
+    address public creditLine;
 
     event Deposit(address indexed lender, uint256 assets, uint256 shares);
     event Withdraw(address indexed lender, uint256 assets, uint256 shares);
+    event CreditLineSet(address indexed creditLine);
+    event OwnerUpdated(address indexed oldOwner, address indexed newOwner);
+
+    error NotOwner();
+    error NotCreditLine();
+    error CreditLineAlreadySet();
 
     constructor(IERC20 asset_) ERC20("ACL Pool Share", "ACL-S") {
         asset = asset_;
+        owner = msg.sender;
+        emit OwnerUpdated(address(0), msg.sender);
+    }
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+
+    modifier onlyCreditLine() {
+        if (msg.sender != creditLine) revert NotCreditLine();
+        _;
+    }
+
+    function setOwner(address newOwner) external onlyOwner {
+        address old = owner;
+        owner = newOwner;
+        emit OwnerUpdated(old, newOwner);
+    }
+
+    /// @notice Set the authorized credit line contract (one-time).
+    function setCreditLine(address creditLine_) external onlyOwner {
+        if (creditLine != address(0)) revert CreditLineAlreadySet();
+        creditLine = creditLine_;
+        emit CreditLineSet(creditLine_);
     }
 
     function totalAssets() public view returns (uint256) {
@@ -65,7 +98,7 @@ contract ACLPool is ERC20 {
     }
 
     /// @notice Called by the credit line to fund a borrower draw.
-    function transferTo(address to, uint256 assets) external {
+    function transferTo(address to, uint256 assets) external onlyCreditLine {
         asset.safeTransfer(to, assets);
     }
 }

@@ -23,12 +23,15 @@ contract DeployFeeReserveACL is Script {
 
         vm.startBroadcast(deployerPk);
 
+        ACLPool pool = ACLPool(poolAddr);
+        KCLStaking staking = KCLStaking(stakingAddr);
+
         ProtocolReserve reserve = new ProtocolReserve(borrower);
 
         AgentCreditLineKCLFee acl = new AgentCreditLineKCLFee(
             IERC20(usdc),
-            ACLPool(poolAddr),
-            KCLStaking(stakingAddr),
+            pool,
+            staking,
             borrower,
             address(reserve),
             50, // 0.50% borrow fee
@@ -41,6 +44,8 @@ contract DeployFeeReserveACL is Script {
             10_000_000e18,
             5000
         );
+
+        pool.setCreditLine(address(acl));
 
         vm.stopBroadcast();
 

@@ -3,7 +3,18 @@ import './index.css';
 import { ADDRS, CHAIN_ID, EXPLORER } from './claave/constants';
 import { ACL_ABI, ACLPOOL_ABI, ERC20_ABI, STAKING_ABI, STRATEGYMOCK_ABI } from './claave/abi';
 import { contractRead, contractWrite, ensureMonadChain, getInjectedProvider, getReadonlyProvider } from './claave/eth';
-import { formatUnits, parseUnits, ZeroAddress } from 'ethers';
+import { formatUnits, getBytes, parseUnits, ZeroAddress } from 'ethers';
+import {
+  Banknote,
+  Coins,
+  Link2,
+  RefreshCw,
+  Shield,
+  Wallet,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Vault
+} from 'lucide-react';
 
 function short(a: string) {
   return a.slice(0, 6) + '…' + a.slice(-4);
@@ -39,11 +50,17 @@ export default function App() {
   const [creditLimit, setCreditLimit] = useState<string>('—');
   const [available, setAvailable] = useState<string>('—');
 
+  const [reserveAddr, setReserveAddr] = useState<string>('—');
+  const [reserveBal, setReserveBal] = useState<string>('—');
+  const [borrowFeeBps, setBorrowFeeBps] = useState<string>('—');
+  const [feesAccrued, setFeesAccrued] = useState<string>('—');
+
   // inputs
   const [depositAmt, setDepositAmt] = useState('100');
   const [bondAmt, setBondAmt] = useState('50');
   const [borrowAmt, setBorrowAmt] = useState('10');
   const [repayAmt, setRepayAmt] = useState('10');
+  const [strategyAddrInput, setStrategyAddrInput] = useState<string>('');
   const [pnl, setPnl] = useState('1');
 
   const [kclDecimals, setKclDecimals] = useState<number>(18);
@@ -104,6 +121,20 @@ export default function App() {
     const avail = await acl.availableToBorrow();
     setCreditLimit(bnToStr(lim, Number(dec)));
     setAvailable(bnToStr(avail, Number(dec)));
+
+    // fee routing / reserve
+    try {
+      const r = await acl.reserve();
+      setReserveAddr(r);
+      const bps = await acl.borrowFeeBps();
+      setBorrowFeeBps(bps.toString());
+      const fa = await acl.feesAccrued();
+      setFeesAccrued(bnToStr(fa, Number(dec)));
+      const rb = await usdc.balanceOf(r);
+      setReserveBal(bnToStr(rb, Number(dec)));
+    } catch {
+      // ignore if connected to non-fee ACL
+    }
   }
 
   useEffect(() => {
@@ -164,17 +195,18 @@ export default function App() {
     const acl = contractWrite(ADDRS.acl, ACL_ABI, signer);
 
     // Signature scheme: digest = keccak256("ACL_LINK", acl, borrower, strategy)
-    // We'll use the deployed StrategyMock as the strategy address.
-    const strategyAddr = ADDRS.strategyMock;
+    // Default strategy is the borrower EOA unless a custom address is provided.
+    const strategyAddr = (strategyAddrInput && strategyAddrInput.trim().length > 0)
+      ? strategyAddrInput.trim()
+      : account;
 
     // match solidity: keccak256(abi.encodePacked("ACL_LINK", address(this), msg.sender, strategy));
-    // Compute locally using ethers.solidityPackedKeccak256
     const { solidityPackedKeccak256 } = await import('ethers');
     const raw = solidityPackedKeccak256(
       ['string', 'address', 'address', 'address'],
       ['ACL_LINK', ADDRS.acl, account, strategyAddr]
     );
-    const sig = await signer.signMessage(raw);
+    const sig = await signer.signMessage(getBytes(raw));
 
     const tx = await acl.linkStrategy(strategyAddr, sig);
     await tx.wait();
@@ -268,20 +300,20 @@ export default function App() {
   }
 
   return (
-    <div style={{ maxWidth: 980, margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: 1080, margin: '0 auto', padding: 24 }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>KLAAVE</div>
-          <div style={{ opacity: 0.75 }}>Agent-native credit lines on Monad</div>
+          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 0.6 }}>KLAAVE</div>
+          <div className="k-muted">Agent-native credit lines on Monad</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontFamily: 'monospace' }}>{account ? short(account) : '—'}</div>
-          <button onClick={connect} style={{ marginTop: 8 }}>{account ? 'Connected' : 'Connect Wallet'}</button>
+          <div className="k-mono">{account ? short(account) : '—'}</div>
+          <button onClick={connect} style={{ marginTop: 8 }}>{account ? 'Connected' : 'Connect wallet'}</button>
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>{status} • chain {CHAIN_ID}</div>
         </div>
       </header>
 
-      <section style={{ marginTop: 24, padding: 16, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
+      <section className="k-card" style={{ marginTop: 24, padding: 16 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <a href={EXPLORER.address(ADDRS.acl)} target="_blank" rel="noreferrer">ACL Contract</a>
           <a href={EXPLORER.address(ADDRS.pool)} target="_blank" rel="noreferrer">Pool</a>
@@ -291,8 +323,10 @@ export default function App() {
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
-        <section style={{ padding: 16, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
-          <h3>Lender</h3>
+        <section className="k-card" style={{ padding: 16 }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+            <Banknote size={18} /> Lender
+          </h3>
           <div>Pool assets: <b>{poolAssets}</b> mUSDC</div>
           <div>Available liquidity: <b>{poolLiquidity}</b> mUSDC</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -301,8 +335,10 @@ export default function App() {
           </div>
         </section>
 
-        <section style={{ padding: 16, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
-          <h3>Borrower</h3>
+        <section className="k-card" style={{ padding: 16 }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+            <Wallet size={18} /> Borrower
+          </h3>
           <div>Strategy: <b>{strategy === '—' ? '—' : short(strategy)}</b></div>
           <div>Equity: <b>{equity}</b> mUSDC</div>
           <div>Bond: <b>{bond}</b> mUSDC</div>
@@ -311,7 +347,9 @@ export default function App() {
           <div>Credit limit: <b>{creditLimit}</b> | available: <b>{available}</b></div>
 
           <div style={{ marginTop: 12, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
-            <div style={{ fontWeight: 700 }}>KCL credit boost (stake)</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+              <Shield size={16} /> KCL credit boost (stake)
+            </div>
             <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
               Stake KCL to boost the credit limit multiplier (on-chain, verifiable).
             </div>
@@ -322,30 +360,58 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button onClick={borrowerLinkStrategy}>Link Strategy</button>
+          <div style={{ marginTop: 12, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+              <Link2 size={16} /> Strategy link
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+              The strategy address receives borrowed funds. Leave blank to use your connected wallet.
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <input
+                placeholder="0x… (optional)"
+                value={strategyAddrInput}
+                onChange={(e) => setStrategyAddrInput(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button onClick={borrowerLinkStrategy}>Link</button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <input value={bondAmt} onChange={(e) => setBondAmt(e.target.value)} style={{ flex: 1 }} />
-            <button onClick={borrowerPostBond}>Post Bond</button>
+            <button onClick={borrowerPostBond}><ArrowDownToLine size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />Post Bond</button>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <input value={borrowAmt} onChange={(e) => setBorrowAmt(e.target.value)} style={{ flex: 1 }} />
-            <button onClick={borrowerBorrow}>Borrow → Strategy</button>
+            <button onClick={borrowerBorrow}><ArrowUpFromLine size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />Borrow to strategy</button>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <input value={repayAmt} onChange={(e) => setRepayAmt(e.target.value)} style={{ flex: 1 }} />
-            <button onClick={borrowerRepay}>Repay</button>
+            <button onClick={borrowerRepay}><Coins size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />Repay</button>
+          </div>
+
+          <div style={{ marginTop: 12, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+              <Vault size={16} /> Protocol reserve
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+              Borrow fees route here. This is the protocol treasury primitive.
+            </div>
+            <div style={{ marginTop: 8 }}>Reserve: <span className="k-mono">{reserveAddr === '—' ? '—' : short(reserveAddr)}</span></div>
+            <div>Reserve balance: <b>{reserveBal}</b> USDC</div>
+            <div>Borrow fee: <b>{borrowFeeBps}</b> bps | Fees accrued: <b>{feesAccrued}</b> USDC</div>
           </div>
         </section>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
-        <section style={{ padding: 16, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
-          <h3>Strategy (Real swap path)</h3>
+        <section className="k-card" style={{ padding: 16 }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+            <Coins size={18} /> Strategy (Real swap path)
+          </h3>
           <div style={{ opacity: 0.75 }}>
             Trustworthy demo: execute a real swap on Monorail, sending output to the strategy address, then come back and updateEpoch.
           </div>
@@ -396,8 +462,10 @@ export default function App() {
           </div>
         </section>
 
-        <section style={{ padding: 16, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
-          <h3>Keeper</h3>
+        <section className="k-card" style={{ padding: 16 }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+            <RefreshCw size={18} /> Keeper
+          </h3>
           <div style={{ opacity: 0.75 }}>
             Anyone can advance epochs. This is the “no human in loop” heartbeat.
           </div>

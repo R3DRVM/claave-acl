@@ -7,10 +7,11 @@ export const ADDRS = {
   // REAL Monad USDC (Uniswap v4 pool)
   mUSDC: '0x754704bc059f8c67012fed69bc8a327a5aafb603',
 
-  // Pool + ACL wired to real USDC
-  pool: '0x7ffd11ae91d0fe1c889bad7939ad12d8fd4a63dc',
-  acl: '0xdb83d43de1131fafc972a24519a6a86b6bd4fdef',
-  staking: '0x6786bc60d21bfa863da4e39fe53d39c952ab3214',
+  // Pool + ACL wired to real USDC (fee routing -> reserve)
+  pool: '0x4d9a2b2a34bc17ecac4b7fe0c8843de520384f23',
+  acl: '0x9793d0260d9ebc62bb8c2f4c0aa2f8c6236d124b',
+  staking: '0x1945660885fb9a7d78d48c49c5167e75f89e73e6',
+  reserve: '0x36eea72139e21a89420796a6e19e37c905244d29',
 
   // Legacy mock strategy (used only for simulated PnL path)
   strategyMock: '0x479E93b34340BF3C6D6b45a18944F1cbFe7D7A4e',

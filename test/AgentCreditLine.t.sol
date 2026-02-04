@@ -27,6 +27,7 @@ contract AgentCreditLineTest is Test {
         usdc = new MockUSDC("Mock USDC", "mUSDC", 6);
         pool = new ACLPool(usdc);
         acl = new AgentCreditLine(usdc, pool, borrower, 10, 1, 1, 2, 1000, -1000);
+        pool.setCreditLine(address(acl));
         strat = new StrategyMock(usdc, borrower);
 
         usdc.mint(lender, 1_000_000e6);

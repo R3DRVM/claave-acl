@@ -30,6 +30,8 @@ contract Deploy is Script {
 
         StrategyMock strategy = new StrategyMock(usdc, borrower);
 
+        pool.setCreditLine(address(acl));
+
         // mint initial funds to deployer & borrower for demo
         usdc.mint(msg.sender, 1_000_000e6);
         usdc.mint(borrower, 200_000e6);

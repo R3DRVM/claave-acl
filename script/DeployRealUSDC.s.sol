@@ -41,6 +41,8 @@ contract DeployRealUSDC is Script {
             5000 // maxBoostBps (+50%)
         );
 
+        pool.setCreditLine(address(acl));
+
         vm.stopBroadcast();
 
         console2.log("USDC:", usdc);

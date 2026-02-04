@@ -43,6 +43,8 @@ contract DeployRealUSDC_FeeReserve is Script {
             5000
         );
 
+        pool.setCreditLine(address(acl));
+
         vm.stopBroadcast();
 
         console2.log("USDC:", usdc);
