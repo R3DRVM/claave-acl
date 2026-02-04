@@ -78,13 +78,13 @@ Klaave aims for a different center:
 Deployed via `script/DeployRealUSDC_FeeReserve.s.sol`.
 
 - USDC (Monad): `0x754704bc059f8c67012fed69bc8a327a5aafb603`
-- ACLPool: `0x4d9a2b2a34bc17ecac4b7fe0c8843de520384f23`
-- KCLStaking: `0x1945660885fb9a7d78d48c49c5167e75f89e73e6`
-- ProtocolReserve: `0x36eea72139e21a89420796a6e19e37c905244d29`
-- AgentCreditLineKCLFee: `0x9793d0260d9ebc62bb8c2f4c0aa2f8c6236d124b`
+- ACLPool: `0x627174de6da03522a2af6ec3d0e2df6466508ff4`
+- KCLStaking: `0x3b717f3f6936810199e79c32fc9f23a829dc8770`
+- ProtocolReserve: `0x5c57584de82d03de6974ac65c47477c053ff824a`
+- AgentCreditLineKCLFee: `0xc760c02df544c59346594050c7f162e7a485939f`
 
 Example borrow proving fee routing to reserve:
-- Borrow tx (fee accrued + transferred to reserve): `0xcfac9711e9b69ae68a5af9eb922a0a6db2c23130cf0fe20a771cba8b62caf2d0`
+- Borrow tx (fee accrued + transferred to reserve): `0x5a43a12c38ec8048172215278ae5007dc8389f85737afb5eb90ba284d42bf1fd`
 
 ---
 
