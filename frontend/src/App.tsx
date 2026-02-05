@@ -39,7 +39,7 @@ export default function App() {
   const [refresh, setRefresh] = useState<number>(0);
 
   // UI mode
-  const [mode, setMode] = useState<'lend' | 'borrow' | 'keeper'>('lend');
+  const [mode, setMode] = useState<'lend' | 'borrow' | 'advanced'>('lend');
 
   // last txs (for judges)
   const [txDeposit, setTxDeposit] = useState<string>('');
@@ -369,7 +369,7 @@ export default function App() {
           <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
             <Pill active={mode === 'lend'} onClick={() => setMode('lend')}>Lend</Pill>
             <Pill active={mode === 'borrow'} onClick={() => setMode('borrow')}>Borrow</Pill>
-            <Pill active={mode === 'keeper'} onClick={() => setMode('keeper')}>Keeper</Pill>
+            <Pill active={mode === 'advanced'} onClick={() => setMode('advanced')}>Advanced</Pill>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -472,7 +472,7 @@ node scripts/keeper_updateEpoch.js $ACL`}
               <Banknote size={18} /> Lend (earn)
             </h3>
             <Hint>
-              You deposit USDC into the pool. Borrowers pay fees that accrue to the protocol reserve.
+              Deposit USDC into the pool. When agents borrow, fees are split between the protocol reserve and lenders (via pool share price).
             </Hint>
             <div style={{ marginTop: 10 }}>Pool assets: <b>{poolAssets}</b> USDC</div>
             <div>Available liquidity: <b>{poolLiquidity}</b> USDC</div>
@@ -577,77 +577,79 @@ node scripts/keeper_updateEpoch.js $ACL`}
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
-        <section className="k-card" style={{ padding: 16 }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
-            <Coins size={18} /> Strategy (Real swap path)
-          </h3>
-          <div style={{ opacity: 0.75 }}>
-            Trustworthy demo: execute a real swap on Monorail, sending output to the strategy address, then come back and updateEpoch.
-          </div>
-
-          <div style={{ marginTop: 10, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
-            <div style={{ fontWeight: 700 }}>Monorail (Option A)</div>
-            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
-              1) Open Monorail • 2) Swap USDC → any token • 3) Use the strategy address as recipient • 4) Return and click updateEpoch()
+      {mode === 'advanced' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+          <section className="k-card" style={{ padding: 16 }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+              <Coins size={18} /> Strategy (real swap path)
+            </h3>
+            <div style={{ opacity: 0.75 }}>
+              Advanced tools for agents: execute a real swap on Monorail to the strategy address, then come back and updateEpoch.
             </div>
-            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={() => window.open('https://monorail.xyz/', '_blank')}>Open Monorail</button>
-              <button
-                onClick={async () => {
-                  await navigator.clipboard.writeText(ADDRS.mUSDC);
-                  alert('Copied USDC address');
-                }}
-              >
-                Copy USDC address
-              </button>
-              <button
-                onClick={async () => {
-                  await navigator.clipboard.writeText(ADDRS.pool);
-                  alert('Copied Klaave pool address');
-                }}
-              >
-                Copy Klaave pool address
-              </button>
-              <button
-                onClick={async () => {
-                  const strat = (strategy && strategy !== '—') ? strategy : (account ?? '');
-                  if (!strat) return alert('Connect wallet first');
-                  await navigator.clipboard.writeText(strat);
-                  alert('Copied strategy/recipient address');
-                }}
-              >
-                Copy strategy address
-              </button>
+
+            <div style={{ marginTop: 10, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+              <div style={{ fontWeight: 700 }}>Monorail</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+                1) Open Monorail • 2) Swap USDC → any token • 3) Use the strategy address as recipient • 4) Return and click updateEpoch()
+              </div>
+              <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => window.open('https://monorail.xyz/', '_blank')}>Open Monorail</button>
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(ADDRS.mUSDC);
+                    alert('Copied USDC address');
+                  }}
+                >
+                  Copy USDC address
+                </button>
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(ADDRS.pool);
+                    alert('Copied Klaave pool address');
+                  }}
+                >
+                  Copy pool address
+                </button>
+                <button
+                  onClick={async () => {
+                    const strat = (strategy && strategy !== '—') ? strategy : (account ?? '');
+                    if (!strat) return alert('Connect wallet first');
+                    await navigator.clipboard.writeText(strat);
+                    alert('Copied strategy/recipient address');
+                  }}
+                >
+                  Copy strategy address
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div style={{ marginTop: 14, opacity: 0.55, fontSize: 12 }}>
-            (Fallback dev tool) Simulated PnL still exists via StrategyMock, but the judge demo should use real swaps.
-          </div>
+            <div style={{ marginTop: 14, opacity: 0.55, fontSize: 12 }}>
+              (Dev tool) Simulated PnL exists via StrategyMock; judge demo should use real swaps.
+            </div>
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <input value={pnl} onChange={(e) => setPnl(e.target.value)} style={{ flex: 1 }} />
-            <button onClick={strategySimulatePnL}>Simulate PnL</button>
-          </div>
-        </section>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <input value={pnl} onChange={(e) => setPnl(e.target.value)} style={{ flex: 1 }} />
+              <button onClick={strategySimulatePnL}>Simulate PnL</button>
+            </div>
+          </section>
 
-        <section className="k-card" style={{ padding: 16 }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
-            <RefreshCw size={18} /> Keeper
-          </h3>
-          <div style={{ opacity: 0.75 }}>
-            Anyone can advance epochs. This is the “no human in loop” heartbeat.
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button onClick={keeperUpdateEpoch}>updateEpoch()</button>
-            <button onClick={() => setRefresh((x) => x + 1)}>Refresh</button>
-          </div>
-        </section>
-      </div>
+          <section className="k-card" style={{ padding: 16 }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+              <RefreshCw size={18} /> Keeper
+            </h3>
+            <div style={{ opacity: 0.75 }}>
+              Anyone can advance epochs (permissionless). This is the “no human in loop” heartbeat.
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button onClick={keeperUpdateEpoch}>updateEpoch()</button>
+              <button onClick={() => setRefresh((x) => x + 1)}>Refresh</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       <footer style={{ marginTop: 24, opacity: 0.7, fontSize: 12 }}>
-        This is v0 UI. Next: real Monorail swap execution + multi-agent roles + keeper automation.
+        Klaave is agent-built and agent-operated: permissionless epoch updates, fee-split lender yield, and strict bond-backed default resolution.
       </footer>
     </div>
   );
