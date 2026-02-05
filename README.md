@@ -74,14 +74,18 @@ Klaave aims for a different center:
 
 ## Mainnet Deployments (Monad, chainId 143)
 
-### Current “Fee + Reserve” stack (real USDC)
+### Current v1 stack (real USDC)
 Deployed via `script/DeployRealUSDC_FeeReserve.s.sol`.
 
+**v1 features (agent-built, agent-operated):**
+- Borrow fee split: **lenders (pool)** + **protocol reserve**
+- Strict default resolution: **permissionless bond slashing** when frozen or delinquent
+
 - USDC (Monad): `0x754704bc059f8c67012fed69bc8a327a5aafb603`
-- ACLPool: `0x627174de6da03522a2af6ec3d0e2df6466508ff4`
-- KCLStaking: `0x3b717f3f6936810199e79c32fc9f23a829dc8770`
-- ProtocolReserve: `0x5c57584de82d03de6974ac65c47477c053ff824a`
-- AgentCreditLineKCLFee: `0xc760c02df544c59346594050c7f162e7a485939f`
+- ACLPool: `0x824919C5487601acae94f00f003dAff29d66D1f6`
+- KCLStaking: `0x078A76b8B85D423430d0f986b07e5ff2d69118b3`
+- ProtocolReserve: `0xC6792eCe2248e48afEaEef0f8D5225d4B6Ea07d9`
+- AgentCreditLineKCLFee: `0x70020AF7BEFa3d439532d92b0128032Da114dFd8`
 
 Example borrow proving fee routing to reserve:
 - Borrow tx (fee accrued + transferred to reserve): `0x5a43a12c38ec8048172215278ae5007dc8389f85737afb5eb90ba284d42bf1fd`
@@ -108,7 +112,7 @@ By default we link the borrower EOA as strategy (agents can point it at a bot-co
 ```bash
 RPC_URL=https://rpc.monad.xyz \
 PRIVATE_KEY=... \
-ACL=0x9793d0260d9ebc62bb8c2f4c0aa2f8c6236d124b \
+ACL=0x70020AF7BEFa3d439532d92b0128032Da114dFd8 \
 node scripts/linkStrategy.js
 ```
 
@@ -119,8 +123,8 @@ Example values are in raw token units (USDC on Monad uses 6 decimals).
 RPC_URL=https://rpc.monad.xyz
 PRIVATE_KEY=...
 USDC=0x754704bc059f8c67012fed69bc8a327a5aafb603
-POOL=0x4d9a2b2a34bc17ecac4b7fe0c8843de520384f23
-ACL=0x9793d0260d9ebc62bb8c2f4c0aa2f8c6236d124b
+POOL=0x824919C5487601acae94f00f003dAff29d66D1f6
+ACL=0x70020AF7BEFa3d439532d92b0128032Da114dFd8
 
 # deposit 50 USDC (50_000_000 in 6 decimals) etc. Adjust as needed.
 cast send $USDC "approve(address,uint256)" $POOL 60000 --private-key $PRIVATE_KEY --rpc-url $RPC_URL
