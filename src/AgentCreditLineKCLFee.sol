@@ -58,11 +58,13 @@ contract AgentCreditLineKCLFee {
     event EpochUpdated(uint64 epoch, int256 perf, int256 score, uint256 equity);
     event CreditLimitUpdated(uint256 oldLimit, uint256 newLimit, bool frozen, uint256 boostBps);
     event FeeAccrued(uint256 fee, uint256 totalFees);
+    event BondSlashed(address indexed caller, uint256 amount, uint256 newBond, uint256 newDebt);
 
     error NotBorrower();
     error NotReady();
     error Frozen();
     error Limit();
+    error NotSlashable();
 
     constructor(
         IERC20 asset_,
@@ -201,6 +203,37 @@ contract AgentCreditLineKCLFee {
         else state.debt -= amount;
 
         emit Repaid(msg.sender, amount, state.debt);
+    }
+
+    function isDelinquent() public view returns (bool) {
+        // delinquent if we are more than 2 epochs behind
+        uint64 e = currentEpoch();
+        return (e > state.epoch + 2);
+    }
+
+    function slashable() public view returns (bool) {
+        // strict rule: only slash when there is outstanding debt and either
+        // (a) the line is frozen, or (b) the borrower is delinquent on updates.
+        if (state.debt == 0) return false;
+        return state.borrowDisabled || isDelinquent();
+    }
+
+    /// @notice Anyone can slash bond to repay debt when the borrower is frozen or delinquent.
+    /// Slashed funds go directly to the pool, reducing debt 1:1.
+    function slashBond(uint256 amount) external {
+        if (!slashable()) revert NotSlashable();
+        require(amount > 0, "amount=0");
+
+        uint256 a = amount;
+        if (a > state.bond) a = state.bond;
+        if (a > state.debt) a = state.debt;
+
+        state.bond -= a;
+        state.debt -= a;
+
+        asset.safeTransfer(address(pool), a);
+
+        emit BondSlashed(msg.sender, a, state.bond, state.debt);
     }
 
     function updateEpoch() external {
