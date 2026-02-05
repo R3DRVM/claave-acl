@@ -13,8 +13,12 @@ import {
   Wallet,
   ArrowDownToLine,
   ArrowUpFromLine,
-  Vault
+  Vault,
+  Info,
+  SlidersHorizontal
 } from 'lucide-react';
+
+import { AmountChips, Hint, Pill, SmallLabel } from './claave/ui';
 
 function short(a: string) {
   return a.slice(0, 6) + '…' + a.slice(-4);
@@ -34,6 +38,9 @@ export default function App() {
   const [status, setStatus] = useState<string>('disconnected');
   const [refresh, setRefresh] = useState<number>(0);
 
+  // UI mode
+  const [mode, setMode] = useState<'lend' | 'borrow' | 'keeper'>('lend');
+
   // last txs (for judges)
   const [txDeposit, setTxDeposit] = useState<string>('');
   const [txLink, setTxLink] = useState<string>('');
@@ -44,6 +51,7 @@ export default function App() {
 
   // read state
   const [usdcDecimals, setUsdcDecimals] = useState<number>(6);
+  const [usdcBal, setUsdcBal] = useState<string>('—');
   const [poolAssets, setPoolAssets] = useState<string>('—');
   const [poolLiquidity, setPoolLiquidity] = useState<string>('—');
 
@@ -95,6 +103,9 @@ export default function App() {
     const usdc = contractRead(ADDRS.mUSDC, ERC20_ABI, ro);
     const dec = await usdc.decimals();
     setUsdcDecimals(Number(dec));
+
+    const myBal = account ? await usdc.balanceOf(account) : 0n;
+    setUsdcBal(bnToStr(myBal, Number(dec)));
 
     const pool = contractRead(ADDRS.pool, ACLPOOL_ABI, ro);
     const ta = await pool.totalAssets();
@@ -351,45 +362,65 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: 24 }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 0.6 }}>KLAAVE</div>
           <div className="k-muted">Agent-native credit lines on Monad</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <Pill active={mode === 'lend'} onClick={() => setMode('lend')}>Lend</Pill>
+            <Pill active={mode === 'borrow'} onClick={() => setMode('borrow')}>Borrow</Pill>
+            <Pill active={mode === 'keeper'} onClick={() => setMode('keeper')}>Keeper</Pill>
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div className="k-mono">{account ? short(account) : '—'}</div>
           <button onClick={connect} style={{ marginTop: 8 }}>{account ? 'Connected' : 'Connect wallet'}</button>
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>{status} • chain {CHAIN_ID}</div>
+          <div style={{ marginTop: 10 }}>
+            <SmallLabel>Your USDC</SmallLabel>
+            <div style={{ fontWeight: 800 }}>{usdcBal}</div>
+          </div>
         </div>
       </header>
 
       <section className="k-card" style={{ marginTop: 16, padding: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 16 }}>
           <div>
-            <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Judge demo</div>
-            <div className="k-muted" style={{ fontSize: 12, marginTop: 4 }}>
-              Click through the rail. Each step updates on-chain and links to MonadVision.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, letterSpacing: 0.2 }}>
+              <Info size={16} /> Start here
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
-              <a href={EXPLORER.address(ADDRS.acl)} target="_blank" rel="noreferrer">ACL</a>
-              <a href={EXPLORER.address(ADDRS.pool)} target="_blank" rel="noreferrer">Pool</a>
-              <a href={EXPLORER.address(ADDRS.mUSDC)} target="_blank" rel="noreferrer">USDC</a>
-              {'reserve' in ADDRS ? <a href={EXPLORER.address((ADDRS as any).reserve)} target="_blank" rel="noreferrer">Reserve</a> : null}
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Step n={1} title="Connect wallet" done={stepConnected} />
-            <Step n={2} title="Deposit liquidity" done={stepDeposit} tx={txDeposit} />
-            <Step n={3} title="Link strategy" done={stepLinked} tx={txLink} />
-            <Step n={4} title="Post bond" done={stepBonded} tx={txBond} />
-            <Step n={5} title="Borrow" done={stepBorrowed} tx={txBorrow} />
-            <Step n={6} title="Update epoch" done={stepEpoch} tx={txEpoch} />
-          </div>
-        </div>
+            <Hint>
+              This UI is usable by humans and agents. If you are new: start in Lend mode. If you are an agent: switch to Borrow.
+            </Hint>
 
-        <details style={{ marginTop: 14 }}>
-          <summary style={{ cursor: 'pointer', opacity: 0.85, fontWeight: 700 }}>Agent ops (CLI)</summary>
-          <div className="k-mono" style={{ fontSize: 12, whiteSpace: 'pre-wrap', opacity: 0.9, marginTop: 10 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+              <a href={EXPLORER.address(ADDRS.acl)} target="_blank" rel="noreferrer">View ACL</a>
+              <a href={EXPLORER.address(ADDRS.pool)} target="_blank" rel="noreferrer">View pool</a>
+              <a href={EXPLORER.address(ADDRS.mUSDC)} target="_blank" rel="noreferrer">View USDC</a>
+              {'reserve' in ADDRS ? <a href={EXPLORER.address((ADDRS as any).reserve)} target="_blank" rel="noreferrer">View reserve</a> : null}
+            </div>
+
+            <div style={{ marginTop: 14, padding: 12, borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800 }}>
+                <SlidersHorizontal size={16} /> What to do
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
+                <div>
+                  <SmallLabel>Lend</SmallLabel>
+                  <div style={{ fontWeight: 700, marginTop: 2 }}>Deposit USDC</div>
+                  <Hint>Earn pool yield from agent borrowing fees over time.</Hint>
+                </div>
+                <div>
+                  <SmallLabel>Borrow</SmallLabel>
+                  <div style={{ fontWeight: 700, marginTop: 2 }}>Bond + borrow</div>
+                  <Hint>Post a security deposit and borrow to your recipient wallet.</Hint>
+                </div>
+              </div>
+            </div>
+
+            <details style={{ marginTop: 14 }}>
+              <summary style={{ cursor: 'pointer', opacity: 0.9, fontWeight: 800 }}>Agent ops (CLI)</summary>
+              <div className="k-mono" style={{ fontSize: 12, whiteSpace: 'pre-wrap', opacity: 0.9, marginTop: 10 }}>
 {`RPC_URL=https://rpc.monad.xyz
 USDC=${ADDRS.mUSDC}
 POOL=${ADDRS.pool}
@@ -399,7 +430,7 @@ ACL=${ADDRS.acl}
 cast send $USDC "approve(address,uint256)" $POOL <amt> --private-key $PRIVATE_KEY --rpc-url $RPC_URL
 cast send $POOL "deposit(uint256,address)" <amt> $ADDRESS --private-key $PRIVATE_KEY --rpc-url $RPC_URL
 
-# link strategy (borrower)
+# link recipient (borrower)
 RPC_URL=$RPC_URL PRIVATE_KEY=$PRIVATE_KEY ACL=$ACL node scripts/linkStrategy.js
 
 # bond + borrow
@@ -409,8 +440,20 @@ cast send $ACL "borrow(uint256)" <amt> --private-key $PRIVATE_KEY --rpc-url $RPC
 
 # keeper
 node scripts/keeper_updateEpoch.js $ACL`}
+              </div>
+            </details>
           </div>
-        </details>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontWeight: 900, letterSpacing: 0.2 }}>Demo rail</div>
+            <Step n={1} title="Connect wallet" done={stepConnected} />
+            <Step n={2} title="Deposit USDC" done={stepDeposit} tx={txDeposit} />
+            <Step n={3} title="Set recipient wallet" done={stepLinked} tx={txLink} />
+            <Step n={4} title="Security deposit (bond)" done={stepBonded} tx={txBond} />
+            <Step n={5} title="Borrow" done={stepBorrowed} tx={txBorrow} />
+            <Step n={6} title="Refresh credit score" done={stepEpoch} tx={txEpoch} />
+          </div>
+        </div>
       </section>
 
       <section className="k-card" style={{ marginTop: 24, padding: 16 }}>
@@ -423,22 +466,43 @@ node scripts/keeper_updateEpoch.js $ACL`}
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
-        <section className="k-card" style={{ padding: 16 }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
-            <Banknote size={18} /> Lender
-          </h3>
-          <div>Pool assets: <b>{poolAssets}</b> mUSDC</div>
-          <div>Available liquidity: <b>{poolLiquidity}</b> mUSDC</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <input value={depositAmt} onChange={(e) => setDepositAmt(e.target.value)} style={{ flex: 1 }} />
-            <button onClick={lenderDeposit}>Deposit</button>
-          </div>
-        </section>
+        {mode === 'lend' ? (
+          <section className="k-card" style={{ padding: 16 }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+              <Banknote size={18} /> Lend (earn)
+            </h3>
+            <Hint>
+              You deposit USDC into the pool. Borrowers pay fees that accrue to the protocol reserve.
+            </Hint>
+            <div style={{ marginTop: 10 }}>Pool assets: <b>{poolAssets}</b> USDC</div>
+            <div>Available liquidity: <b>{poolLiquidity}</b> USDC</div>
+            <div style={{ marginTop: 12 }}>
+              <SmallLabel>Choose an amount</SmallLabel>
+              <AmountChips values={['10', '50', '100']} onPick={setDepositAmt} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <input value={depositAmt} onChange={(e) => setDepositAmt(e.target.value)} style={{ flex: 1 }} />
+              <button onClick={lenderDeposit}>Deposit USDC</button>
+            </div>
+            {txDeposit ? (
+              <div style={{ marginTop: 10 }}>
+                <SmallLabel>Latest deposit tx</SmallLabel>
+                <a className="k-mono" href={EXPLORER.tx(txDeposit)} target="_blank" rel="noreferrer">{txDeposit}</a>
+              </div>
+            ) : null}
+          </section>
+        ) : (
+          <section className="k-card" style={{ padding: 16, opacity: 0.6 }}>
+            <h3 style={{ marginTop: 0 }}>Lend (earn)</h3>
+            <Hint>Switch to Lend mode to deposit.</Hint>
+          </section>
+        )}
 
-        <section className="k-card" style={{ padding: 16 }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
-            <Wallet size={18} /> Borrower
-          </h3>
+        {mode === 'borrow' ? (
+          <section className="k-card" style={{ padding: 16 }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+              <Wallet size={18} /> Borrow (agent)
+            </h3>
           <div>Strategy: <b>{strategy === '—' ? '—' : short(strategy)}</b></div>
           <div>Equity: <b>{equity}</b> mUSDC</div>
           <div>Bond: <b>{bond}</b> mUSDC</div>
@@ -505,6 +569,12 @@ node scripts/keeper_updateEpoch.js $ACL`}
             <div>Borrow fee: <b>{borrowFeeBps}</b> bps | Fees accrued: <b>{feesAccrued}</b> USDC</div>
           </div>
         </section>
+        ) : (
+          <section className="k-card" style={{ padding: 16, opacity: 0.6 }}>
+            <h3 style={{ marginTop: 0 }}>Borrow (agent)</h3>
+            <Hint>Switch to Borrow mode to post a bond and borrow.</Hint>
+          </section>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
