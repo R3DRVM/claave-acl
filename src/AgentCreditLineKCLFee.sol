@@ -34,7 +34,9 @@ contract AgentCreditLineKCLFee {
 
     address public immutable reserve;
     uint16 public immutable borrowFeeBps; // e.g. 50 = 0.50%
+    uint16 public immutable lendersFeeShareBps; // share of fee sent to pool (0-10000)
     uint256 public feesAccrued;
+    uint256 public feesToLendersAccrued;
 
     uint256 public immutable epochBlocks;
     int256 public immutable aBond;
@@ -51,6 +53,7 @@ contract AgentCreditLineKCLFee {
     event Linked(address indexed borrower, address indexed strategy);
     event BondPosted(address indexed borrower, uint256 amount, uint256 totalBond);
     event Borrowed(address indexed borrower, uint256 grossAmount, uint256 fee, uint256 netAmount, uint256 debt);
+    event FeeSplit(uint256 toReserve, uint256 toLenders);
     event Repaid(address indexed borrower, uint256 amount, uint256 debt);
     event EpochUpdated(uint64 epoch, int256 perf, int256 score, uint256 equity);
     event CreditLimitUpdated(uint256 oldLimit, uint256 newLimit, bool frozen, uint256 boostBps);
@@ -68,6 +71,7 @@ contract AgentCreditLineKCLFee {
         address borrower_,
         address reserve_,
         uint16 borrowFeeBps_,
+        uint16 lendersFeeShareBps_,
         uint256 epochBlocks_,
         int256 aBond_,
         int256 bPerf_,
@@ -83,6 +87,7 @@ contract AgentCreditLineKCLFee {
         state.borrower = borrower_;
         reserve = reserve_;
         borrowFeeBps = borrowFeeBps_;
+        lendersFeeShareBps = lendersFeeShareBps_;
 
         epochBlocks = epochBlocks_;
         aBond = aBond_;
@@ -166,9 +171,21 @@ contract AgentCreditLineKCLFee {
         state.debt += grossAmount;
 
         if (fee > 0) {
-            pool.transferTo(reserve, fee);
+            uint256 toLenders = (fee * lendersFeeShareBps) / 10_000;
+            uint256 toReserve = fee - toLenders;
+
+            if (toReserve > 0) {
+                pool.transferTo(reserve, toReserve);
+            }
+            if (toLenders > 0) {
+                // increase pool assets directly (lenders benefit via share price)
+                pool.transferTo(address(pool), toLenders);
+                feesToLendersAccrued += toLenders;
+            }
+
             feesAccrued += fee;
             emit FeeAccrued(fee, feesAccrued);
+            emit FeeSplit(toReserve, toLenders);
         }
 
         pool.transferTo(state.strategy, net);

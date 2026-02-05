@@ -33,6 +33,7 @@ contract DeployRealUSDC_FeeReserve is Script {
             borrower,
             address(reserve),
             50, // 0.50% borrow fee
+            8000, // 80% of fee -> lenders
             50,
             1,
             1,
