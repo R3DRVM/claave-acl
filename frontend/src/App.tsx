@@ -34,6 +34,14 @@ export default function App() {
   const [status, setStatus] = useState<string>('disconnected');
   const [refresh, setRefresh] = useState<number>(0);
 
+  // last txs (for judges)
+  const [txDeposit, setTxDeposit] = useState<string>('');
+  const [txLink, setTxLink] = useState<string>('');
+  const [txBond, setTxBond] = useState<string>('');
+  const [txBorrow, setTxBorrow] = useState<string>('');
+  const [txEpoch, setTxEpoch] = useState<string>('');
+  const [, setTxRepay] = useState<string>('');
+
   // read state
   const [usdcDecimals, setUsdcDecimals] = useState<number>(6);
   const [poolAssets, setPoolAssets] = useState<string>('—');
@@ -160,6 +168,7 @@ export default function App() {
       await txa.wait();
     }
     const tx = await pool.deposit(amt, account);
+    setTxDeposit(tx.hash);
     await tx.wait();
     setRefresh((x) => x + 1);
   }
@@ -181,6 +190,7 @@ export default function App() {
       await txa.wait();
     }
     const tx = await acl.postBond(amt);
+    setTxBond(tx.hash);
     await tx.wait();
     setRefresh((x) => x + 1);
   }
@@ -209,6 +219,7 @@ export default function App() {
     const sig = await signer.signMessage(getBytes(raw));
 
     const tx = await acl.linkStrategy(strategyAddr, sig);
+    setTxLink(tx.hash);
     await tx.wait();
     setRefresh((x) => x + 1);
   }
@@ -223,6 +234,7 @@ export default function App() {
 
     const amt = parseUnits(borrowAmt, usdcDecimals);
     const tx = await acl.borrow(amt);
+    setTxBorrow(tx.hash);
     await tx.wait();
     setRefresh((x) => x + 1);
   }
@@ -245,6 +257,7 @@ export default function App() {
     }
 
     const tx = await acl.repay(amt);
+    setTxRepay(tx.hash);
     await tx.wait();
     setRefresh((x) => x + 1);
   }
@@ -274,6 +287,7 @@ export default function App() {
     const signer = await ip.getSigner();
     const acl = contractWrite(ADDRS.acl, ACL_ABI, signer);
     const tx = await acl.updateEpoch();
+    setTxEpoch(tx.hash);
     await tx.wait();
     setRefresh((x) => x + 1);
   }
@@ -299,6 +313,42 @@ export default function App() {
     setRefresh((x) => x + 1);
   }
 
+  const stepConnected = !!account;
+  const stepDeposit = poolAssets !== '—' && Number(poolAssets) > 0;
+  const stepLinked = strategy !== '—' && strategy !== '';
+  const stepBonded = bond !== '—' && Number(bond) > 0;
+  const stepBorrowed = debt !== '—' && Number(debt) > 0;
+  const stepEpoch = txEpoch.length > 0;
+
+  function Step({
+    n,
+    title,
+    done,
+    tx
+  }: {
+    n: number;
+    title: string;
+    done: boolean;
+    tx?: string;
+  }) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: done ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.03)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="k-mono" style={{ width: 22, textAlign: 'center', opacity: 0.85 }}>{n}</div>
+          <div style={{ fontWeight: 700 }}>{title}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ fontSize: 12, opacity: done ? 0.95 : 0.5 }}>{done ? 'done' : 'pending'}</div>
+          {tx ? (
+            <a className="k-mono" style={{ fontSize: 12, opacity: 0.8 }} href={EXPLORER.tx(tx)} target="_blank" rel="noreferrer">
+              {short(tx)}
+            </a>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: 24 }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -312,6 +362,56 @@ export default function App() {
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>{status} • chain {CHAIN_ID}</div>
         </div>
       </header>
+
+      <section className="k-card" style={{ marginTop: 16, padding: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div>
+            <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Judge demo</div>
+            <div className="k-muted" style={{ fontSize: 12, marginTop: 4 }}>
+              Click through the rail. Each step updates on-chain and links to MonadVision.
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+              <a href={EXPLORER.address(ADDRS.acl)} target="_blank" rel="noreferrer">ACL</a>
+              <a href={EXPLORER.address(ADDRS.pool)} target="_blank" rel="noreferrer">Pool</a>
+              <a href={EXPLORER.address(ADDRS.mUSDC)} target="_blank" rel="noreferrer">USDC</a>
+              {'reserve' in ADDRS ? <a href={EXPLORER.address((ADDRS as any).reserve)} target="_blank" rel="noreferrer">Reserve</a> : null}
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Step n={1} title="Connect wallet" done={stepConnected} />
+            <Step n={2} title="Deposit liquidity" done={stepDeposit} tx={txDeposit} />
+            <Step n={3} title="Link strategy" done={stepLinked} tx={txLink} />
+            <Step n={4} title="Post bond" done={stepBonded} tx={txBond} />
+            <Step n={5} title="Borrow" done={stepBorrowed} tx={txBorrow} />
+            <Step n={6} title="Update epoch" done={stepEpoch} tx={txEpoch} />
+          </div>
+        </div>
+
+        <details style={{ marginTop: 14 }}>
+          <summary style={{ cursor: 'pointer', opacity: 0.85, fontWeight: 700 }}>Agent ops (CLI)</summary>
+          <div className="k-mono" style={{ fontSize: 12, whiteSpace: 'pre-wrap', opacity: 0.9, marginTop: 10 }}>
+{`RPC_URL=https://rpc.monad.xyz
+USDC=${ADDRS.mUSDC}
+POOL=${ADDRS.pool}
+ACL=${ADDRS.acl}
+
+# deposit (lender)
+cast send $USDC "approve(address,uint256)" $POOL <amt> --private-key $PRIVATE_KEY --rpc-url $RPC_URL
+cast send $POOL "deposit(uint256,address)" <amt> $ADDRESS --private-key $PRIVATE_KEY --rpc-url $RPC_URL
+
+# link strategy (borrower)
+RPC_URL=$RPC_URL PRIVATE_KEY=$PRIVATE_KEY ACL=$ACL node scripts/linkStrategy.js
+
+# bond + borrow
+cast send $USDC "approve(address,uint256)" $ACL <amt> --private-key $PRIVATE_KEY --rpc-url $RPC_URL
+cast send $ACL "postBond(uint256)" <amt> --private-key $PRIVATE_KEY --rpc-url $RPC_URL
+cast send $ACL "borrow(uint256)" <amt> --private-key $PRIVATE_KEY --rpc-url $RPC_URL
+
+# keeper
+node scripts/keeper_updateEpoch.js $ACL`}
+          </div>
+        </details>
+      </section>
 
       <section className="k-card" style={{ marginTop: 24, padding: 16 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
