@@ -16,6 +16,7 @@ contract DeployRealUSDC_FeeReserve is Script {
     function run() external {
         uint256 deployerPk = vm.envUint("PRIVATE_KEY");
         address borrower = vm.envAddress("BORROWER");
+        address reserveOwner = vm.envAddress("RESERVE_OWNER");
         address usdc = vm.envAddress("USDC");
 
         vm.startBroadcast(deployerPk);
@@ -24,7 +25,7 @@ contract DeployRealUSDC_FeeReserve is Script {
 
         ACLPool pool = new ACLPool(IERC20(usdc));
         KCLStaking staking = new KCLStaking(IERC20(kclToken));
-        ProtocolReserve reserve = new ProtocolReserve(borrower);
+        ProtocolReserve reserve = new ProtocolReserve(reserveOwner);
 
         AgentCreditLineKCLFee acl = new AgentCreditLineKCLFee(
             IERC20(usdc),

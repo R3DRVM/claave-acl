@@ -12,6 +12,10 @@ docs/
 
 # Dotenv file
 .env
+
+# local keys (never commit)
+keys/
+
 node_modules/
 broadcast/
 cache/
