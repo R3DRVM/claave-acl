@@ -43,6 +43,8 @@ export const ACL_ABI = [
   'function borrow(uint256 amount)',
   'function repay(uint256 amount)',
   'function updateEpoch()',
+  'function slashable() view returns (bool)',
+  'function slashBond(uint256 amount)',
   'function state() view returns (address borrower,address strategy,uint256 bond,uint256 debt,int256 score,uint256 failures,bool borrowDisabled,uint64 epoch,uint64 lastUpdatedBlock,uint256 lastEquity)',
   'function reserve() view returns (address)',
   'function borrowFeeBps() view returns (uint16)',
@@ -52,7 +54,8 @@ export const ACL_ABI = [
   'event Borrowed(address indexed borrower, uint256 amount, uint256 debt)',
   'event Repaid(address indexed borrower, uint256 amount, uint256 debt)',
   'event EpochUpdated(uint64 epoch, int256 perf, int256 score, uint256 equity)',
-  'event CreditLimitUpdated(uint256 oldLimit, uint256 newLimit, bool frozen)'
+  'event CreditLimitUpdated(uint256 oldLimit, uint256 newLimit, bool frozen)',
+  'event BondSlashed(address indexed caller, uint256 amount, uint256 newBond, uint256 newDebt)'
 ];
 
 export const STRATEGYMOCK_ABI = [

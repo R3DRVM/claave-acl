@@ -51,25 +51,25 @@ export default function App() {
 
   // read state
   const [usdcDecimals, setUsdcDecimals] = useState<number>(6);
-  const [usdcBal, setUsdcBal] = useState<string>('—');
-  const [poolAssets, setPoolAssets] = useState<string>('—');
-  const [poolLiquidity, setPoolLiquidity] = useState<string>('—');
+  const [usdcBal, setUsdcBal] = useState<string>('-');
+  const [poolAssets, setPoolAssets] = useState<string>('-');
+  const [poolLiquidity, setPoolLiquidity] = useState<string>('-');
 
-  const [bond, setBond] = useState<string>('—');
-  const [debt, setDebt] = useState<string>('—');
-  const [score, setScore] = useState<string>('—');
-  const [failures, setFailures] = useState<string>('—');
-  const [frozen, setFrozen] = useState<string>('—');
-  const [strategy, setStrategy] = useState<string>('—');
-  const [equity, setEquity] = useState<string>('—');
+  const [bond, setBond] = useState<string>('-');
+  const [debt, setDebt] = useState<string>('-');
+  const [score, setScore] = useState<string>('-');
+  const [failures, setFailures] = useState<string>('-');
+  const [frozen, setFrozen] = useState<string>('-');
+  const [strategy, setStrategy] = useState<string>('-');
+  const [equity, setEquity] = useState<string>('-');
 
-  const [creditLimit, setCreditLimit] = useState<string>('—');
-  const [available, setAvailable] = useState<string>('—');
+  const [creditLimit, setCreditLimit] = useState<string>('-');
+  const [available, setAvailable] = useState<string>('-');
 
-  const [reserveAddr, setReserveAddr] = useState<string>('—');
-  const [reserveBal, setReserveBal] = useState<string>('—');
-  const [borrowFeeBps, setBorrowFeeBps] = useState<string>('—');
-  const [feesAccrued, setFeesAccrued] = useState<string>('—');
+  const [reserveAddr, setReserveAddr] = useState<string>('-');
+  const [reserveBal, setReserveBal] = useState<string>('-');
+  const [borrowFeeBps, setBorrowFeeBps] = useState<string>('-');
+  const [feesAccrued, setFeesAccrued] = useState<string>('-');
 
   // inputs
   const [depositAmt, setDepositAmt] = useState('100');
@@ -80,8 +80,13 @@ export default function App() {
   const [pnl, setPnl] = useState('1');
 
   const [kclDecimals, setKclDecimals] = useState<number>(18);
-  const [kclStaked, setKclStaked] = useState<string>('—');
+  const [kclStaked, setKclStaked] = useState<string>('-');
   const [kclStakeAmt, setKclStakeAmt] = useState('100000');
+
+  // slashing
+  const [slashable, setSlashable] = useState<boolean>(false);
+  const [slashAmt, setSlashAmt] = useState('10');
+  const [txSlash, setTxSlash] = useState<string>('');
 
   async function connect() {
     const ip = getInjectedProvider();
@@ -130,7 +135,7 @@ export default function App() {
     setScore(scoreV.toString());
     setFailures(failuresV.toString());
     setFrozen(String(frozenV));
-    setStrategy(strat === ZeroAddress ? '—' : strat);
+    setStrategy(strat === ZeroAddress ? '-' : strat);
 
     // equity: read strategy balance directly
     const eq = await usdc.balanceOf(strat);
@@ -153,6 +158,14 @@ export default function App() {
       setReserveBal(bnToStr(rb, Number(dec)));
     } catch {
       // ignore if connected to non-fee ACL
+    }
+
+    // slashable check
+    try {
+      const canSlash = await acl.slashable();
+      setSlashable(canSlash);
+    } catch {
+      setSlashable(false);
     }
   }
 
@@ -324,11 +337,28 @@ export default function App() {
     setRefresh((x) => x + 1);
   }
 
+  async function slashBond() {
+    const ip = getInjectedProvider();
+    if (!ip) {
+      alert('Slashing requires an injected wallet to pay gas.');
+      return;
+    }
+    await ensureMonadChain(ip);
+    const signer = await ip.getSigner();
+    const acl = contractWrite(ADDRS.acl, ACL_ABI, signer);
+
+    const amt = parseUnits(slashAmt, usdcDecimals);
+    const tx = await acl.slashBond(amt);
+    setTxSlash(tx.hash);
+    await tx.wait();
+    setRefresh((x) => x + 1);
+  }
+
   const stepConnected = !!account;
-  const stepDeposit = poolAssets !== '—' && Number(poolAssets) > 0;
-  const stepLinked = strategy !== '—' && strategy !== '';
-  const stepBonded = bond !== '—' && Number(bond) > 0;
-  const stepBorrowed = debt !== '—' && Number(debt) > 0;
+  const stepDeposit = poolAssets !== '-' && Number(poolAssets) > 0;
+  const stepLinked = strategy !== '-' && strategy !== '';
+  const stepBonded = bond !== '-' && Number(bond) > 0;
+  const stepBorrowed = debt !== '-' && Number(debt) > 0;
   const stepEpoch = txEpoch.length > 0;
 
   function Step({
@@ -373,7 +403,7 @@ export default function App() {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="k-mono">{account ? short(account) : '—'}</div>
+          <div className="k-mono">{account ? short(account) : '-'}</div>
           <button onClick={connect} style={{ marginTop: 8 }}>{account ? 'Connected' : 'Connect wallet'}</button>
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>{status} • chain {CHAIN_ID}</div>
           <div style={{ marginTop: 10 }}>
@@ -503,7 +533,7 @@ node scripts/keeper_updateEpoch.js $ACL`}
             <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
               <Wallet size={18} /> Borrow (agent)
             </h3>
-          <div>Strategy: <b>{strategy === '—' ? '—' : short(strategy)}</b></div>
+          <div>Strategy: <b>{strategy === '-' ? '-' : short(strategy)}</b></div>
           <div>Equity: <b>{equity}</b> mUSDC</div>
           <div>Bond: <b>{bond}</b> mUSDC</div>
           <div>Debt: <b>{debt}</b> mUSDC</div>
@@ -557,16 +587,42 @@ node scripts/keeper_updateEpoch.js $ACL`}
             <button onClick={borrowerRepay}><Coins size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />Repay</button>
           </div>
 
-          <div style={{ marginTop: 12, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+          <div style={{ marginTop: 12, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, background: 'rgba(16,185,129,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-              <Vault size={16} /> Protocol reserve
+              <Vault size={16} /> Fee flow & lender yield
             </div>
-            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
-              Borrow fees route here. This is the protocol treasury primitive.
+            <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6, lineHeight: 1.5 }}>
+              When agents borrow, a <b>{borrowFeeBps}</b> bps fee is charged. This fee is split:
             </div>
-            <div style={{ marginTop: 8 }}>Reserve: <span className="k-mono">{reserveAddr === '—' ? '—' : short(reserveAddr)}</span></div>
-            <div>Reserve balance: <b>{reserveBal}</b> USDC</div>
-            <div>Borrow fee: <b>{borrowFeeBps}</b> bps | Fees accrued: <b>{feesAccrued}</b> USDC</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10, fontSize: 13 }}>
+              <div style={{ padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 4 }}>Lenders (pool)</div>
+                <div style={{ fontWeight: 800 }}>~50%</div>
+                <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>Via pool share price appreciation</div>
+              </div>
+              <div style={{ padding: 10, borderRadius: 8, background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 4 }}>Protocol reserve</div>
+                <div style={{ fontWeight: 800 }}>~50%</div>
+                <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>Transferred to treasury</div>
+              </div>
+            </div>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, opacity: 0.75 }}>Reserve contract:</span>
+                <span className="k-mono" style={{ fontSize: 11 }}>{reserveAddr === '—' ? '—' : short(reserveAddr)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, opacity: 0.75 }}>Reserve balance:</span>
+                <span style={{ fontWeight: 700 }}>{reserveBal} USDC</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, opacity: 0.75 }}>Total fees accrued:</span>
+                <span style={{ fontWeight: 700 }}>{feesAccrued} USDC</span>
+              </div>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11, opacity: 0.6, fontStyle: 'italic' }}>
+              💡 Lender yield compounds automatically through pool share value. No claiming needed.
+            </div>
           </div>
         </section>
         ) : (
@@ -612,7 +668,7 @@ node scripts/keeper_updateEpoch.js $ACL`}
                 </button>
                 <button
                   onClick={async () => {
-                    const strat = (strategy && strategy !== '—') ? strategy : (account ?? '');
+                    const strat = (strategy && strategy !== '-') ? strategy : (account ?? '');
                     if (!strat) return alert('Connect wallet first');
                     await navigator.clipboard.writeText(strat);
                     alert('Copied strategy/recipient address');
@@ -638,11 +694,58 @@ node scripts/keeper_updateEpoch.js $ACL`}
               <RefreshCw size={18} /> Keeper
             </h3>
             <div style={{ opacity: 0.75 }}>
-              Anyone can advance epochs (permissionless). This is the “no human in loop” heartbeat.
+              Anyone can advance epochs (permissionless). This is the "no human in loop" heartbeat.
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button onClick={keeperUpdateEpoch}>updateEpoch()</button>
               <button onClick={() => setRefresh((x) => x + 1)}>Refresh</button>
+            </div>
+
+            <div style={{ marginTop: 16, padding: 12, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                <Shield size={16} /> Bond slashing
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+                When a borrower is frozen or delinquent (2+ epochs behind), anyone can slash their bond to repay debt.
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Slashable:</span>
+                  <span style={{ fontWeight: 700, color: slashable ? '#10b981' : '#ef4444' }}>
+                    {slashable ? 'YES' : 'NO'}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>
+                  {slashable
+                    ? 'This credit line can be slashed (frozen or delinquent with debt)'
+                    : 'Not slashable (no debt, not frozen, or up to date)'
+                  }
+                </div>
+              </div>
+              {slashable ? (
+                <>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <input
+                      value={slashAmt}
+                      onChange={(e) => setSlashAmt(e.target.value)}
+                      style={{ flex: 1 }}
+                      placeholder="Amount to slash"
+                    />
+                    <button onClick={slashBond}>Slash bond</button>
+                  </div>
+                  <div style={{ fontSize: 11, opacity: 0.65, marginTop: 6 }}>
+                    Slashed funds repay debt 1:1 and return to the pool. This protects lenders.
+                  </div>
+                  {txSlash ? (
+                    <div style={{ marginTop: 8 }}>
+                      <SmallLabel>Latest slash tx</SmallLabel>
+                      <a className="k-mono" style={{ fontSize: 11 }} href={EXPLORER.tx(txSlash)} target="_blank" rel="noreferrer">
+                        {txSlash}
+                      </a>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
             </div>
           </section>
         </div>
