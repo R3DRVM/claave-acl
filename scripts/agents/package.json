@@ -1,0 +1,35 @@
+{
+  "name": "klaave-v2-agent-testing",
+  "version": "1.0.0",
+  "description": "Autonomous agent scripts for Klaave V2 48-hour testnet validation",
+  "type": "module",
+  "scripts": {
+    "coordinator": "tsx coordinator.ts",
+    "lender": "tsx lender.ts",
+    "borrower": "tsx borrower.ts",
+    "risky-borrower": "tsx risky-borrower.ts",
+    "liquidator": "tsx liquidator.ts",
+    "arbitrage": "tsx arbitrage.ts",
+    "stress-tester": "tsx stress-tester.ts",
+    "test-env": "node -e \"require('dotenv').config(); console.log('Environment validated:', !!process.env.POOL_ADDRESS)\""
+  },
+  "dependencies": {
+    "ethers": "^6.13.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "klaave",
+    "defi",
+    "lending",
+    "agent",
+    "testing",
+    "autonomous"
+  ],
+  "author": "Klaave Team",
+  "license": "MIT"
+}

@@ -21,3 +21,13 @@ broadcast/
 cache/
 .DS_Store
 package-lock.json
+
+# Agent sim outputs
+logs/
+metrics/
+dashboard/
+
+# Agent sim secrets
+scripts/agents/.env
+scripts/agents/agent-wallets.json
+scripts/agents/node_modules/
